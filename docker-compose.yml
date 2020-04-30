@@ -1,0 +1,38 @@
+version : "3"
+services:
+  backend:
+    build: ./backend
+    container_name: 'back-cryptocoins'
+    command: sh -c 'python app.py'
+    ports:
+      - '5000:5000'
+    volumes:
+      - './backend:/backend'
+    depends_on:
+      - 'encripteddb'
+      - 'decripteddb'
+
+  encripteddb:
+    container_name: 'mongoencripteddb'
+    image: mongo
+    ports:
+      - "27017:27017"
+
+  decripteddb:
+    container_name: 'mongodecripteddb'
+    image: mongo
+    ports:
+      - "27018:27017"
+
+  # frontend:
+  #   build: ./frontend
+  #   container_name: 'front-turismo'
+  #   command: sh -c 'npm install; npm start'
+  #   ports:
+  #     - '3000:3000'
+  #   volumes:
+  #     - './frontend:/frontend'
+  #   depends_on:
+  #     - "backend"
+  #   stdin_open: true
+  #   tty: true
