@@ -7,10 +7,11 @@ import json
 
 coinmarketcap_base_path = 'https://pro-api.coinmarketcap.com'
 coinmarketcap_key = '135c9cb7-864a-4d01-a2d5-d45fbebe031b'
+limit = 500
 
 
 def getCriptoCoins():
-    """Consumimos la API de coinmarketcap"""
+    """Comparamos los datos de ambas bd para evaluar si fueron alterados y luego los retornamos"""
     try:
         decripted_criptocoins = list(mongodb_decripted.coin_decripted.find({}, {'_id': 0}))
         encripted_criptocoins = list(mongodb_encripted.coin_encripted.find({'ranking': decripted_criptocoins[0]['cmc_rank']}, {'_id': 0}))
@@ -47,9 +48,23 @@ def restartDatabase():
         mongodb_encripted.coin_encripted.drop()
 
         # Obtenemos las criptomonedas de coinmarketcap
-        limit = 10
         response = requests.get(f'{coinmarketcap_base_path}/v1/cryptocurrency/listings/latest?limit={limit}&CMC_PRO_API_KEY={coinmarketcap_key}')
         decripted_criptocoins = response.json()['data']
+
+        for dcc in decripted_criptocoins:
+            dcc['circulating_supply'] = str(dcc['circulating_supply'])
+            dcc['cmc_rank'] = str(dcc['cmc_rank'])
+            dcc['id'] = str(dcc['id'])
+            dcc['max_supply'] = str(dcc['max_supply'])
+            dcc['num_market_pairs'] = str(dcc['num_market_pairs'])
+            dcc['quote']['USD']['market_cap'] = str(dcc['quote']['USD']['market_cap'])
+            dcc['quote']['USD']['percent_change_1h'] = str(dcc['quote']['USD']['percent_change_1h'])
+            dcc['quote']['USD']['percent_change_24h'] = str(dcc['quote']['USD']['percent_change_24h'])
+            dcc['quote']['USD']['percent_change_7d'] = str(dcc['quote']['USD']['percent_change_7d'])
+            dcc['quote']['USD']['price'] = str(dcc['quote']['USD']['price'])
+            dcc['quote']['USD']['volume_24h'] = str(dcc['quote']['USD']['volume_24h'])
+            dcc['total_supply'] = str(dcc['total_supply'])
+
 
         # Guardamos los datos encriptados de cada criptomoneda con sha512
         mongodb_encripted.coin_encripted.insert_many([{'ranking':  dcc['cmc_rank'],'data' : dataHashing(dcc)} for dcc in decripted_criptocoins])
@@ -60,6 +75,22 @@ def restartDatabase():
     except:
         raise
 
+def searchByRank(rank):
+    """Buscamos una criptomoneda por su ranking"""
+    try:
+        """Parseamos el objeto tipo cursor que nos devuelve mongo y lo convertimos a lista para acceder a los atributos"""
+        decripted_response = list(mongodb_decripted.coin_decripted.find({'cmc_rank' : rank}, {'_id': 0}))
+        if(len(decripted_response)==0):
+            return "Error, no existe una criptomoneda en dicho ranking"
+        else:
+            encripted_response = list(mongodb_encripted.coin_encripted.find({'ranking': decripted_response[0]['cmc_rank']}, {'_id': 0}))
+
+            if(dataHashing(decripted_response[0]) == encripted_response[0]['data']):
+                return decripted_response
+            else:
+                return False
+    except:
+        raise
 
 
 def searchCriptoCurrency(name):
@@ -67,27 +98,30 @@ def searchCriptoCurrency(name):
     try:
         """Parseamos el objeto tipo cursor que nos devuelve mongo y lo convertimos a lista para acceder a los atributos"""
         decripted_response = list(mongodb_decripted.coin_decripted.find({'name' : name}, {'_id': 0}))
-        encripted_response = list(mongodb_encripted.coin_encripted.find({'ranking': decripted_response[0]['cmc_rank']}, {'_id': 0}))
-
-        if(dataHashing(decripted_response[0]) == encripted_response[0]['data']):
-            return decripted_response
+        if(len(decripted_response)==0):
+            return "Error, la criptomoneda no existe!"
         else:
-            return False
+            encripted_response = list(mongodb_encripted.coin_encripted.find({'ranking': decripted_response[0]['cmc_rank']}, {'_id': 0}))
+
+            if(dataHashing(decripted_response[0]) == encripted_response[0]['data']):
+                return decripted_response
+            else:
+                return False
     except:
         raise
 
 def deleteCriptoCurrency(ranking):
     """Eliminamos una criptomoneda mediante su campo id"""
+ 
+    if((int(ranking) >= 0) and (int(ranking) <= limit)):
+        decripted_response = list(mongodb_decripted.coin_decripted.find({'cmc_rank': ranking}, {'_id': 0}))
+        encripted_response = list(mongodb_encripted.coin_encripted.find({'ranking': ranking}, {'_id': 0}))
 
-    decripted_response = list(mongodb_decripted.coin_decripted.find({'cmc_rank': ranking}, {'_id': 0}))
-    encripted_response = list(mongodb_encripted.coin_encripted.find({'ranking': ranking}, {'_id': 0}))
+        if(dataHashing(decripted_response[0]) == encripted_response[0]['data']):
+            """Eliminamos la criptomoneda con ranking=<rank> de ambas bases de datos"""
+            mongodb_decripted.coin_decripted.delete_one({'cmc_rank': ranking})
+            mongodb_encripted.coin_encripted.delete_one({'ranking': ranking})
 
-    if(dataHashing(decripted_response[0]) == encripted_response[0]['data']):
-        """Eliminamos la criptomoneda con ranking=<rank> de ambas bases de datos"""
-        mongodb_decripted.coin_decripted.delete_one({'cmc_rank': ranking})
-        mongodb_encripted.coin_encripted.delete_one({'ranking': ranking})
-
-        return "Delete OK"
-
-
-restartDatabase()
+            return "Delete OK"
+    else:
+        return "Error! Indice fuera de rango."
