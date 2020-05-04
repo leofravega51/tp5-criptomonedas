@@ -1,21 +1,26 @@
 from flask import Flask, jsonify
 from mongo.connectionDB import mongodb_encripted, mongodb_decripted
 from flask_cors import CORS
-from agent.agent import getCriptoCoins, dataHashing, restartDatabase, searchCriptoCurrency, topCoins, deleteCriptoCurrency
+from agent.agent import getCriptoCoins, dataHashing, restartDatabase, searchCriptoCurrency, topCoins, deleteCriptoCurrency, searchByRank
 
 
 app = Flask(__name__)
 CORS(app)
 
 
-@app.route('/cripto_coins')
+@app.route('/cripto_coins', methods=["GET"])
 def showGetCriptoCoins():
-    """Obtenemos las cripto monedas de coinmarketcap y las retornamos en formato json"""
+    """Obtenemos las cripto monedas y las retornamos en formato json"""
     
     criptocoins = getCriptoCoins() 
     
     return jsonify(criptocoins)
 
+@app.route('/cripto_coin/<ranking>', methods=["GET"])
+def searchCriptoCoinByRank(ranking):
+
+    query = searchByRank(ranking)
+    return jsonify(query)
 
 @app.route('/cripto_coins/searchCriptoCoin/<name>')
 def searchCriptoCoin(name):
@@ -35,11 +40,11 @@ def top20():
     top20 = topCoins(20)
     return jsonify(top20)
 
-@app.route('/cripto_coins/delete/<int:ranking>')
+@app.route('/cripto_coins/delete/<ranking>', methods=["GET"])
 def deleteCriptoCoin(ranking):
     """Eliminamos una criptomoneda por su campo ranking"""
-    deleteCriptoCurrency(ranking)
-    return "Delete OK"
+    response = deleteCriptoCurrency(ranking)
+    return response
 
 if __name__ == "__main__":
     app.run(host='backend', port='5000', debug=True)
