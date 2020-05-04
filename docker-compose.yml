@@ -24,15 +24,15 @@ services:
     ports:
       - "27018:27017"
 
-  # frontend:
-  #   build: ./frontend
-  #   container_name: 'front-turismo'
-  #   command: sh -c 'npm install; npm start'
-  #   ports:
-  #     - '3000:3000'
-  #   volumes:
-  #     - './frontend:/frontend'
-  #   depends_on:
-  #     - "backend"
-  #   stdin_open: true
-  #   tty: true
+  frontend:
+    build: ./frontend
+    container_name: 'front-criptocoins'
+    command: sh -c 'npm install; npm start'
+    ports:
+      - '3000:3000'
+    volumes:
+      - './frontend:/frontend'
+    depends_on:
+      - "backend"
+    stdin_open: true
+    tty: true
