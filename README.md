@@ -1,4 +1,4 @@
-tp5-criptocoins
+# tp5-criptocoins
 Una vez ubicado en la carpeta raiz (tp5-criptomonedas) ejecutar el siguiente comando:
 docker-compose up --build
 
