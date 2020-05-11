@@ -16,6 +16,13 @@ def showGetCriptoCoins():
     
     return jsonify(criptocoins)
 
+@app.before_first_request
+def before_first_request():
+    """Inicializamos la base de datos previamente a cualquier consulta"""
+
+    response = restartDatabase()
+    return response
+
 @app.route('/cripto_coin/<ranking>', methods=["GET"])
 def searchCriptoCoinByRank(ranking):
 
